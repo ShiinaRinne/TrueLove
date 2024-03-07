@@ -1,0 +1,9 @@
+*\__pycache__
+.idea
+.vscode
+*.log
+.pytest_cache
+*.db
+download
+tests
+bin
