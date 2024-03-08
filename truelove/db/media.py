@@ -5,9 +5,10 @@ from sqlalchemy.sql import select, delete, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from truelove.db.models import Media, MediaSchema
-from truelove.db import session_handler
 from truelove.logger import logger
+from truelove.db import session_handler
+from truelove.db.models import Media, MediaSchema
+from truelove.db.models.schema import DownloadStatus
 
 class MediaDB:
     @staticmethod
@@ -47,10 +48,10 @@ class MediaDB:
     @session_handler
     async def update_media_download_status(
         media_id: str,
-        download_status: int,
+        download_status: DownloadStatus,
         session: Session = None,
     ) -> None:
-        await session.execute(update(Media).where(Media.media_id == media_id).values(download_status=download_status))
+        await session.execute(update(Media).where(Media.media_id == media_id).values(download_status=download_status.value))
 
     
     @staticmethod

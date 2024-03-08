@@ -28,7 +28,7 @@ $(document).ready(function() {
         fetchWatcheeContent(uid);
     });
 
-    $(document).on('click', '.remove-watchee-btn', function() {
+    $(document).off('click', '.remove-watchee-btn').on('click', '.remove-watchee-btn', function() {
         var uid = $(this).data('uid');
         removeWatchee(uid);
     });
@@ -125,14 +125,6 @@ function fetchWatcheeInfo() {
                     </div>
                 </li>`
             );
-        });
-        $('.view-content-btn').click(function() {
-            var uid = $(this).data('uid');
-            fetchWatcheeContent(uid);
-        });
-        $('.remove-watchee-btn').click(function() {
-            var uid = $(this).data('uid');
-            removeWatchee(uid);
         });
         
     });

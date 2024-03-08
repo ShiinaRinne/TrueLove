@@ -1,17 +1,13 @@
-import asyncio
-from fastapi import HTTPException, status, APIRouter, BackgroundTasks
 from typing import List, Literal, Optional
+from fastapi import HTTPException, status, APIRouter, BackgroundTasks
 
 from truelove.process.manager import TrueLoveManager, task_in_progress
-from truelove.process.platforms.api.biliapi.models import AuthorInfo
 
-from truelove.db.models import (
-    WatcheeSchema,
-    MediaSchema,
-)
-from truelove.logger import logger
 from truelove.routes.models import *
-from truelove.routes.utils import  parse_uid
+from truelove.logger import logger
+from truelove.db.models import WatcheeSchema
+from truelove.routes.utils import parse_uid
+
 
 
 router = APIRouter()
@@ -66,7 +62,7 @@ async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None)
         
 @router.get("/download_media")
 async def _download_media(uid: Optional[str] = None):
-    await download_media()
+    # await download_media()
 
     return {
         "status": "success",
@@ -77,17 +73,17 @@ async def _download_media(uid: Optional[str] = None):
 async def _add_watchee(request: AddWatcheeRequest) -> AddWatcheeResponse:
     uid = parse_uid(request.uid)
 
-    author_info: AuthorInfo = await TrueLoveManager.add_watchee(uid, request.platform, request.core)
-    if author_info is None:
+    w: WatcheeSchema = await TrueLoveManager.add_watchee(uid, request.platform, request.core)
+    if w is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Author {uid} not exists",
+            detail=f"Author {uid} already exists",
         )
         
     return AddWatcheeResponse(
         status="success",
-        message=f"Add [{author_info.name}] to Watching",
-        uid=author_info.mid,
+        message=f"Add [{w.author}] to Watching",
+        uid=w.uid,
         platform="bilibili",
         ret_code=0,
     )

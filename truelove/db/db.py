@@ -4,12 +4,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 from truelove.logger import logger
 from truelove.config import config
-from .base import Base
+from truelove.db.base import Base
 
-import logging
-
-sqlogger = logging.getLogger("sqlalchemy")
-sqlogger.setLevel(logging.WARNING)
 
 db_file_path = os.path.join(config.root_dir, "truelove.db")
 

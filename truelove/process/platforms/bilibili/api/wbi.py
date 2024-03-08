@@ -1,10 +1,10 @@
 # https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/misc/sign/wbi.md
 
-from functools import reduce
-from hashlib import md5
-import urllib.parse
 import time
 import requests
+import urllib.parse
+from hashlib import md5
+from functools import reduce
 
 mixinKeyEncTab = [
     46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,

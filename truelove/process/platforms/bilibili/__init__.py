@@ -1,13 +1,14 @@
 import asyncio
+from enum import Enum
 from typing import AsyncGenerator, List
 
-from .base import BaseManager
-from truelove.db import MediaDB, WatchingDB
-from truelove.db.models import WatcheeSchema, MediaSchema, FullMediaDataSchema
-from truelove.process.exception import *
-from truelove.process.platforms.api.biliapi import *
-from truelove.process.utils import parse_save_dir
+from ..base import BaseManager
 from truelove.logger import logger
+from truelove.process.exception import *
+from truelove.db import MediaDB, WatchingDB
+from truelove.process.utils import parse_save_dir
+from truelove.process.platforms.bilibili.api import *
+from truelove.db.models import *
 
 
 async def read_output(process):
@@ -39,17 +40,17 @@ class BiliBiliManager(BaseManager):
         return AuthorInfo.model_validate(result["data"])
         
     @staticmethod
-    async def add_watchee(uid: str, platform: str, core:str) -> AuthorInfo | None:
+    async def add_watchee(uid: str, platform: str, core:str) -> WatcheeSchema:
         author_info: AuthorInfo = await BiliBiliManager.fetch_author_info(int(uid))
         await WatchingDB.add_author(name=author_info.name, uid=uid, platform=platform, core=core)
         
-        return author_info
+        return (await WatchingDB.fetch_watchee_info_from_db(uid=uid))[0]
     
     @staticmethod
-    async def _fetch_current_medias_id_from_db(w: WatcheeSchema):
+    async def _fetch_current_medias_id_from_db(w: WatcheeSchema) -> List[str]:
         medias: List[MediaSchema] = await MediaDB.fetch_media_by_author_from_db(w.w_id)
-        medias_id = [m.media_id for m in medias]
-        return medias_id
+        
+        return [m.media_id for m in medias]
     
     @staticmethod
     async def _fetch_videos(uid: str) -> AsyncGenerator[AuthorVideoSearchVList, None]:
@@ -96,7 +97,10 @@ class BiliBiliManager(BaseManager):
                 await BiliBiliManager.download_bilix(md)
             case _:
                 raise CoreNotFoundException(f"Core {md.core} not supported on {md.platform}")
-
+        
+        await MediaDB.update_media_download_status(md.media_id, DownloadStatus.SUCCESS)
+    
+    
     @staticmethod
     async def download_bilix(md: FullMediaDataSchema) -> str:
         # cmd = BiliBiliManager.core_dir / "bilix"
@@ -109,13 +113,23 @@ class BiliBiliManager(BaseManager):
                     download_url,
                     "-d",
                     parse_save_dir(md),
-                    "--cookie",
-                    config.cookie
                 ]
         else:
             raise UnsupportedMediaTypeException(
                 f"Media type {md.media_type} not supported on bilix"
             )
+            
+        if config.cookie != "":
+            params.append("--cookie")
+            params.append(config.cookie)
+        if config.cover:
+            params.append("--image")
+        if config.subtitle:
+            params.append("--subtitle")
+        if config.dm:
+            params.append("--dm")
+            
+            
         logger.info(
             f"Download {md.platform} -> {md.author} -> {md.media_name} started"
         )
@@ -126,7 +140,5 @@ class BiliBiliManager(BaseManager):
         if returncode != 0:
             stderr = await process.stderr.read()
             raise DownloadFailedException(md, stderr=stderr)
-        
-        await MediaDB.update_media_download_status(md.media_id, 1)
 
         return "Download completed."

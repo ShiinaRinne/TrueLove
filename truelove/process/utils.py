@@ -1,16 +1,14 @@
-import time
-import secrets
-import string
-import asyncio
-import sys
 import os
+import sys
+import time
+import string
+import secrets
+import asyncio
+
 from typing import Literal
 
-from truelove.db.models import FullMediaDataSchema
-from truelove.logger import logger
 from truelove.config import config
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from truelove.db.models import FullMediaDataSchema
 
 
 

@@ -9,8 +9,13 @@ log_level: "INFO" # DEBUG, INFO, WARNING, ERROR
 # 某些清晰度可能需要登录或大会员
 cookie: ""
 
-# 间隔, 实际上代码里现在没用, 改这里也不会生效hhh
-interval: 10
+download-settings:
+  cover:     true
+  subtitle:  false
+  dm:        false
+  # 间隔, 实际上代码里现在没用, 改这里也不会生效hhh
+  interval: 10
+
 
 
 proxies:

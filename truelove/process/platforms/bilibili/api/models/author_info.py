@@ -1,6 +1,7 @@
-from pydantic import BaseModel
-from typing import Any, List, Dict, Optional
 from enum import Enum
+from pydantic import BaseModel
+from typing import Any, List, Optional
+
 
 
 # 用户基础信息

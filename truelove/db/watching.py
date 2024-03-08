@@ -1,8 +1,11 @@
+import time
+from pydantic import BaseModel
 from typing import List, Literal, Optional, Union
 from sqlalchemy import asc, desc
 from sqlalchemy.sql import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from truelove.db import session_handler
 from truelove.db.models import (
     Watching,
     WatcheeSchema,
@@ -10,10 +13,7 @@ from truelove.db.models import (
     Media,
     MediaSchema,
 )
-from truelove.db import session_handler
 from truelove.logger import logger
-from pydantic import BaseModel
-import time
 
 
 class WatchingDB:
@@ -73,8 +73,9 @@ class WatchingDB:
         session: AsyncSession = None,
     ) -> None:
         logger.info(f"Add [{uid} - {name}]  to Watching")
-        name = Watching(author=name, uid=str(uid), platform=platform,core=core, add_time=add_time)
-        session.add(name)
+        w = Watching(author=name, uid=str(uid), platform=platform,core=core, add_time=add_time)
+        session.add(w)
+        
         
 
     @staticmethod
@@ -101,7 +102,7 @@ class WatchingDB:
         order_by: str = "add_time",
         order: Literal["asc", "desc"] = "desc",
         session: AsyncSession = None,
-    ) -> Union[WatcheeSchema,List[WatcheeSchema]]:
+    ) -> List[WatcheeSchema]:
         """获取全部关注的作者信息
 
         Args:
@@ -118,7 +119,5 @@ class WatchingDB:
         query = select(Watching).order_by(order_expression)
         if uid is not None:
             query = query.filter(Watching.uid == uid)
-        result = await session.execute(
-            query.limit(limit)
-        )
+        result = await session.execute(query.limit(limit))
         return result.scalars().all()

@@ -1,5 +1,10 @@
+from enum import Enum
 from pydantic import BaseModel
 
+class DownloadStatus(Enum):
+    NOT_DOWNLOADED  = 0
+    SUCCESS         = 1
+    
 class MediaSchema(BaseModel):
     id: int
     w_id: int
@@ -11,7 +16,7 @@ class MediaSchema(BaseModel):
     media_created: str
     media_pubdate: int
     media_videos: int
-    download_status: int
+    download_status: DownloadStatus
     
     class Config:
         from_attributes = True
@@ -43,5 +48,5 @@ class FullMediaDataSchema(BaseModel):
     media_created: str
     media_pubdate: int
     media_videos: int
-    download_status: int
+    download_status: DownloadStatus
     

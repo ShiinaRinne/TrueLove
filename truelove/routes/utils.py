@@ -1,4 +1,4 @@
-from typing import List, Any, Union
+from typing import Union
 from urllib.parse import urlparse
 
 def parse_uid(url: Union[str, None]) -> str | None:

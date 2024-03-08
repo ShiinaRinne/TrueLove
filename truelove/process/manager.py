@@ -1,20 +1,18 @@
+import os
 import asyncio
 import subprocess
-import os
+
 from datetime import datetime
-from pathlib import Path
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from truelove.config import config
-from truelove.db.models import WatcheeSchema, MediaSchema, FullMediaDataSchema
-from truelove.db import MediaDB, WatchingDB
 from truelove.logger import logger
-from truelove.process.platforms.bilibili import BiliAPI, AuthorInfo
-
 from truelove.process.utils import *
-from .exception import *
+from truelove.process.exception import *
+from truelove.db import MediaDB, WatchingDB
+from truelove.db.models import WatcheeSchema, MediaSchema, FullMediaDataSchema
 
-from truelove.process.utils import sync_wrapper
 
 
 task_in_progress = {}
@@ -45,8 +43,9 @@ class TrueLoveManager:
         if exist.returncode == 0:
             TrueLoveManager.cores.append("bilix")
 
+    # TODO: use watchee instead of bili.AuthorInfo
     @staticmethod
-    async def add_watchee(uid: str, platform: str, core: str) -> AuthorInfo | None:
+    async def add_watchee(uid: str, platform: str, core: str) -> WatcheeSchema | None:
         is_exists = await WatchingDB.is_watchee_exists_in_db(uid)
         if is_exists is not None:
             logger.warning(f"Author [{uid}] already exists")
@@ -56,11 +55,8 @@ class TrueLoveManager:
             case "bilibili":
                 from truelove.process.platforms.bilibili import BiliBiliManager
 
-                author_info: AuthorInfo = await BiliBiliManager.add_watchee(
-                    uid=uid, platform=platform, core=core
-                )
-
-                return author_info
+                return await BiliBiliManager.add_watchee(uid=uid, platform=platform, core=core)
+                
             case _:
                 pass
 
@@ -75,7 +71,7 @@ class TrueLoveManager:
                 pass
 
     @staticmethod
-    async def fetch_watchee_info(uid: Optional[str] = None):
+    async def fetch_watchee_info(uid: Optional[str] = None) -> List[WatcheeSchema]:
         return await WatchingDB.fetch_watchee_info_from_db(uid)
 
     @staticmethod
@@ -105,17 +101,29 @@ class TrueLoveManager:
         )
 
     @staticmethod
-    async def download(w: FullMediaDataSchema):
-        if w.core not in TrueLoveManager.cores:
-            raise CoreNotFoundException(f"Core {w.core} not found")
-        match w.platform:
+    async def download(t: FullMediaDataSchema):
+        if t.core not in TrueLoveManager.cores:
+            raise CoreNotFoundException(f"Core {t.core} not found")
+        match t.platform:
             case "bilibili":
                 from truelove.process.platforms.bilibili import BiliBiliManager
-
-                await BiliBiliManager.download(w)
-
+                await BiliBiliManager.download(t)
             case _:
                 pass
+        
+        await TrueLoveManager._download_cover(t)
+
+
+    @staticmethod
+    async def _download_cover(t:FullMediaDataSchema):
+        cover = t.media_cover
+        dir = parse_save_dir(t)
+        
+        # bilibili use bilix to download cover
+        pass
+        
+        
+        
 
     @staticmethod
     async def remove_watchee(uid: str, delete_medias: bool = False) -> bool:
@@ -155,3 +163,5 @@ class TrueLoveManager:
         )
         for w in ws:
             await TrueLoveManager.download(w)
+
+        # TODO: After download event

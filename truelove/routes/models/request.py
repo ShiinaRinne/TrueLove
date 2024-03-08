@@ -1,5 +1,6 @@
-from typing import Optional, Union, Literal
 from pydantic import BaseModel
+from typing import Optional, Union, Literal
+
 
 class AddWatcheeRequest(BaseModel):
     uid: str

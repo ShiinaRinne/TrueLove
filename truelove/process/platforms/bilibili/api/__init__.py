@@ -1,18 +1,17 @@
-
+import random
 import aiohttp
 from aiohttp.client_exceptions import ServerDisconnectedError
-import random
+
 from typing import Literal, Any
 from urllib.parse import urlencode
 
 
-from truelove.process.platforms.api.biliapi.utils import get_params
-from truelove.process.platforms.api.biliapi.wbi import get_signed_params
-from truelove.process.platforms.api.biliapi.header import Header
-from truelove.process.platforms.api.biliapi.models import AuthorInfo, AuthorVideoSearchInfo, VideoInfo, AuthorVideoSearchVList
 from truelove.config import config
 from truelove.logger import logger
-
+from .utils   import get_params
+from .wbi     import get_signed_params
+from .header  import Header
+from .models  import AuthorInfo, AuthorVideoSearchInfo, VideoInfo, AuthorVideoSearchVList
 
 class BiliAPI:
     @staticmethod
