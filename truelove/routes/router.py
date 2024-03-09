@@ -46,15 +46,11 @@ async def _get_watchee_content(
     return await TrueLoveManager.fetch_watchee_content_from_db( limit=limit, order_by=order_by, order=order, uid=uid)
 
 
-
 @router.get("/refresh")
 async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None) -> dict:
-    print("refresh!!!!!")
-    
     if task_in_progress.get("refresh", False):
         return {"message": "任务正在进行中, 请稍后再试"}
     else:    
-        task_in_progress["refresh"] = True
         background_tasks.add_task(TrueLoveManager.refresh, uid=parse_uid(uid))
         return {
             "message": "已提交任务, 可能需要一些时间才可以刷新完毕",

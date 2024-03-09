@@ -17,6 +17,7 @@ class MediaSchema(BaseModel):
     media_pubdate: int
     media_videos: int
     download_status: DownloadStatus
+    download_path: str
     
     class Config:
         from_attributes = True
@@ -49,4 +50,5 @@ class FullMediaDataSchema(BaseModel):
     media_pubdate: int
     media_videos: int
     download_status: DownloadStatus
+    download_path: str
     

@@ -14,11 +14,11 @@ class BaseManager:
     async def save_watchee_medias_to_db(self):
         pass
     
-    async def download(self):
+    async def _download(self):
         pass
     
     @staticmethod
-    async def add_watchee(uid: str, platform: str, core:str):
+    async def add_watchee_to_db(uid: str, platform: str, core:str):
         pass
     
     async def after_download(self):

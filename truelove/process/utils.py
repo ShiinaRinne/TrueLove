@@ -4,31 +4,21 @@ import time
 import string
 import secrets
 import asyncio
-
+import subprocess
 from typing import Literal
 
 from truelove.config import config
 from truelove.db.models import FullMediaDataSchema
 
+from concurrent.futures import ThreadPoolExecutor
 
 
-def sync_wrapper(async_func, *args, **kwargs):
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+async def run_in_executor(cmd):
+    loop = asyncio.get_running_loop()
+    with ThreadPoolExecutor() as executor:
+        return await loop.run_in_executor(executor, subprocess.run, cmd)
     
-    # test
-    from asyncio import events
-    loop = events.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(async_func(*args, **kwargs))
-    finally:
-        loop.close()
-        if sys.platform == 'win32':
-            asyncio.set_event_loop_policy(None)
-            
-
-
+    
 async def sem_coro(sem, coro):
     async with sem:
         return await coro

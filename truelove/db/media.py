@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from truelove.logger import logger
 from truelove.db import session_handler
-from truelove.db.models import Media, MediaSchema
-from truelove.db.models.schema import DownloadStatus
+from truelove.db.models import Media
+from truelove.db.models.schema import DownloadStatus, FullMediaDataSchema, MediaSchema, WatcheeSchema
 
 class MediaDB:
     @staticmethod
@@ -20,9 +20,9 @@ class MediaDB:
         media_name: str,
         media_cover: str,
         media_intro: str,
-        media_created: int, # b站视频投稿时间
-        media_pubdate: int = 0, # b站视频发布时间
-        media_videos: int = 1, # b站分p总数, 默认为1
+        media_created: int,
+        media_pubdate: int,
+        media_videos: int,
         download_status: int = 0,
         session: Session = None,
     ) -> None:
@@ -47,11 +47,23 @@ class MediaDB:
     @staticmethod
     @session_handler
     async def update_media_download_status(
-        media_id: str,
+        t:FullMediaDataSchema,
         download_status: DownloadStatus,
         session: Session = None,
     ) -> None:
-        await session.execute(update(Media).where(Media.media_id == media_id).values(download_status=download_status.value))
+        """更新文件的下载状态与下载路径
+
+        Args:
+            t (FullMediaDataSchema): _description_
+            download_status (DownloadStatus): _description_
+            session (Session, optional): _description_. Defaults to None.
+        """
+        await session.execute(update(Media).where(Media.media_id == t.media_id).values(download_status=download_status.value, download_path=t.download_path))
+
+    @staticmethod
+    @session_handler
+    async def update_media_download_path(media_id: str, download_path: str, session: Session = None) -> None:
+        await session.execute(update(Media).where(Media.media_id == media_id).values(download_path=download_path))
 
     
     @staticmethod
@@ -90,8 +102,16 @@ class MediaDB:
             .all()
         )
 
+
     @staticmethod
     @session_handler
-    async def delete_media(media_id: str, session: Session = None) -> None:
-        logger.info(f"Delete [{media_id}] from Medias")
-        await session.execute(delete(Media).filter(Media.media_id == media_id))
+    async def delete_author_media(w: WatcheeSchema, session: Session = None) -> None:
+        logger.info(f"Delete [{w.platform} - {w.author}] from Medias")
+        await session.execute(delete(Media).filter(Media.w_id == w.w_id))
+
+    
+    @staticmethod
+    @session_handler
+    async def fetch_media_save_path(w: WatcheeSchema, session: Session = None) -> List[str]:
+        return (await session.execute(select(Media.download_path).filter(Media.w_id == w.w_id))).scalars().all()
+        

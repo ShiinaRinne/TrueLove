@@ -1,24 +1,14 @@
 from truelove.routes import app
+from truelove.process.plugin import *
 from truelove.process.manager import TrueLoveManager
+from datetime import datetime
+
 
 async def main():
     TrueLoveManager.update_core()
     
-    TrueLoveManager.add_job(
-        "interval",
-        args=[TrueLoveManager.download_media],
-        minutes=1,
-        id="download_media",
-    )
-    
-    TrueLoveManager.add_job(
-        "interval",
-        args=[TrueLoveManager.refresh],
-        minutes=10,
-        id="refresh",
-    )
-
-
+    TrueLoveManager.scheduler.add_job(TrueLoveManager.download_media,   'interval', minutes=1,  next_run_time=datetime.now())
+    TrueLoveManager.scheduler.add_job(TrueLoveManager.refresh,          'interval', minutes=10, next_run_time=datetime.now())
     TrueLoveManager.scheduler.start()
                     
 @app.on_event("startup")

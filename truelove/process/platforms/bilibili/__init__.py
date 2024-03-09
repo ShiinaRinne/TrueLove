@@ -1,14 +1,14 @@
 import asyncio
-from enum import Enum
 from typing import AsyncGenerator, List
 
 from ..base import BaseManager
+
 from truelove.logger import logger
 from truelove.process.exception import *
 from truelove.db import MediaDB, WatchingDB
-from truelove.process.utils import parse_save_dir
+from truelove.db.models.schema import WatcheeSchema, MediaSchema
+from truelove.process.utils import run_in_executor
 from truelove.process.platforms.bilibili.api import *
-from truelove.db.models import *
 
 
 async def read_output(process):
@@ -40,7 +40,7 @@ class BiliBiliManager(BaseManager):
         return AuthorInfo.model_validate(result["data"])
         
     @staticmethod
-    async def add_watchee(uid: str, platform: str, core:str) -> WatcheeSchema:
+    async def add_watchee_to_db(uid: str, platform: str, core:str) -> WatcheeSchema:
         author_info: AuthorInfo = await BiliBiliManager.fetch_author_info(int(uid))
         await WatchingDB.add_author(name=author_info.name, uid=uid, platform=platform, core=core)
         
@@ -64,7 +64,6 @@ class BiliBiliManager(BaseManager):
             videos_page = await BiliAPI.fetch_author_video_list(uid, pn=pn + 1)
             for video in videos_page.list.vlist:
                 yield video
-            await asyncio.sleep(30)
 
     @staticmethod
     async def save_watchee_medias_to_db(w: WatcheeSchema):
@@ -85,24 +84,26 @@ class BiliBiliManager(BaseManager):
                 media_cover=video_info.pic,
                 media_intro=video_info.desc,
                 media_created=video_info.ctime,
+                media_pubdate=video_info.pubdate,
+                media_videos=video_info.videos,
             )
             logger.info(f"Add [{v.title}] to Medias. Wait for download~")
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
 
     @staticmethod
-    async def download(md: FullMediaDataSchema):
+    async def _download(md: FullMediaDataSchema):
         match md.core :
             case "bilix":
-                await BiliBiliManager.download_bilix(md)
+                await BiliBiliManager._download_bilix(md)
             case _:
                 raise CoreNotFoundException(f"Core {md.core} not supported on {md.platform}")
         
-        await MediaDB.update_media_download_status(md.media_id, DownloadStatus.SUCCESS)
+       
     
     
     @staticmethod
-    async def download_bilix(md: FullMediaDataSchema) -> str:
+    async def _download_bilix(md: FullMediaDataSchema) -> str:
         # cmd = BiliBiliManager.core_dir / "bilix"
         download_url = f"https://www.bilibili.com/video/{md.media_id}"
         cmd = "bilix" # install bilix with pip, no need to use absolute path
@@ -112,7 +113,7 @@ class BiliBiliManager(BaseManager):
                     "get_series" if md.media_videos > 1 else "v",
                     download_url,
                     "-d",
-                    parse_save_dir(md),
+                    md.download_path,
                 ]
         else:
             raise UnsupportedMediaTypeException(
@@ -130,15 +131,9 @@ class BiliBiliManager(BaseManager):
             params.append("--dm")
             
             
-        logger.info(
-            f"Download {md.platform} -> {md.author} -> {md.media_name} started"
-        )
-        process = await asyncio.create_subprocess_exec(*params, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        asyncio.create_task(read_output(process))
-
-        returncode = await process.wait()
-        if returncode != 0:
-            stderr = await process.stderr.read()
-            raise DownloadFailedException(md, stderr=stderr)
+        logger.info(f"Download {md.platform} -> {md.author} -> {md.media_name} started")
+        
+        result = await run_in_executor(params)
+        logger.info("Output:", result)
 
         return "Download completed."

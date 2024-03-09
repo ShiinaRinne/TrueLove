@@ -20,6 +20,7 @@ class Media(Base):
     media_created = Column(Text, nullable=False)
     
     download_status = Column(Integer, default=0)
+    download_path = Column(Text, default="")
     
     watch = relationship("Watching", back_populates="medias")
 

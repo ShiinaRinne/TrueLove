@@ -58,6 +58,7 @@ class WatchingDB:
                 media_pubdate=r.Media.media_pubdate,
                 media_videos=r.Media.media_videos,
                 download_status=r.Media.download_status,
+                download_path=r.Media.download_path,
             )
             for r in result
         ]
@@ -81,11 +82,11 @@ class WatchingDB:
     @staticmethod
     @session_handler
     async def delete_author(
-        uid: str,
+        w: WatcheeSchema,
         session: AsyncSession = None,
     ) -> None:
-        logger.info(f"Delete [{uid}] from Watching")
-        await session.execute(delete(Watching).filter(Watching.uid == str(uid)))
+        logger.info(f"Delete [{w.platform} - {w.author}] from Watching")
+        await session.execute(delete(Watching).filter(Watching.uid == str(w.uid)))
         
 
     @staticmethod
