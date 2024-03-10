@@ -1,4 +1,4 @@
 from .db import session_handler, Base, init_db
 
-from .media import *
+from .video import *
 from .watching import *

@@ -8,7 +8,7 @@ import subprocess
 from typing import Literal
 
 from truelove.config import config
-from truelove.db.models import FullMediaDataSchema
+from truelove.db.models import FullVideoDataSchema
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -31,15 +31,15 @@ def generate_random_string(length=16):
     return random_string
 
 
-def parse_save_dir(media: FullMediaDataSchema):
+def parse_save_dir(video: FullVideoDataSchema):
     dir: str = config.save_dir
-    media_name = media.media_name.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
+    video_name = video.video_name.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
     replacements = {
-        "{author}":                 media.author,
-        "{filename}":               media_name,
-        "{filename_without_ext}":   media_name.rsplit(".", 1)[0] if "." in media.media_name else "",
-        "{ext}":                    media_name.rsplit(".", 1)[1] if "." in media.media_name else "",
-        "{platform}":               media.platform,
+        "{author}":                 video.author,
+        "{filename}":               video_name,
+        "{filename_without_ext}":   video_name.rsplit(".", 1)[0] if "." in video.video_name else "",
+        "{ext}":                    video_name.rsplit(".", 1)[1] if "." in video.video_name else "",
+        "{platform}":               video.platform,
         "{timestamp}":              str(int(time.time())),
         "{timestamp_nano}":         str(time.time_ns()),
         "{datetime}":               time.strftime("%Y%m%d%H%M%S"),

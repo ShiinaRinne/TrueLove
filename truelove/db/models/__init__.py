@@ -1,5 +1,5 @@
 from .schema import *
-from .media import Media
+from .video import Video
 from .watching import Watching
 
     

@@ -5,17 +5,16 @@ class DownloadStatus(Enum):
     NOT_DOWNLOADED  = 0
     SUCCESS         = 1
     
-class MediaSchema(BaseModel):
+class VideoSchema(BaseModel):
     id: int
     w_id: int
-    media_id: str
-    media_type: str
-    media_name: str
-    media_cover: str
-    media_intro: str
-    media_created: str
-    media_pubdate: int
-    media_videos: int
+    video_id: str
+    video_name: str
+    video_cover: str
+    video_intro: str
+    video_created: str
+    video_pubdate: int
+    video_num: int
     download_status: DownloadStatus
     download_path: str
     
@@ -29,26 +28,27 @@ class WatcheeSchema(BaseModel):
     platform: str
     core: str
     add_time: int
+    watch_type: str
 
     class Config:
         from_attributes = True
 
-class FullMediaDataSchema(BaseModel):
+class FullVideoDataSchema(BaseModel):
     id: int
     author: str
     uid: str
     platform: str
     core: str
     add_time: int
+    watch_type: str
     
-    media_id: str
-    media_type: str
-    media_name: str
-    media_cover: str
-    media_intro: str
-    media_created: str
-    media_pubdate: int
-    media_videos: int
+    video_id: str
+    video_name: str
+    video_cover: str
+    video_intro: str
+    video_created: str
+    video_pubdate: int
+    video_num: int
     download_status: DownloadStatus
     download_path: str
     

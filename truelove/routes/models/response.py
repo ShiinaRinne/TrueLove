@@ -8,11 +8,11 @@ class SubscriptionResponse(BaseModel):
     platform: str
     add_time: int
     
-    media_id: str
-    media_name: str
-    media_cover: str
-    media_intro: str
-    media_created: str
+    video_id: str
+    video_name: str
+    video_cover: str
+    video_intro: str
+    video_created: str
     download_status: int
     
     

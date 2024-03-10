@@ -13,6 +13,7 @@ class Watching(Base):
     platform = Column(Text, nullable=False)
     core = Column(Text, nullable=False)  # 使用的core
     add_time = Column(Text, nullable=False)  # 添加到关注的时间
+    watch_type = Column(Text, nullable=False)  # 关注的类型
     
 
-    medias = relationship("Media", back_populates="watch") 
+    videos = relationship("Video", back_populates="watch") 

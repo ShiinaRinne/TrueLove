@@ -5,27 +5,49 @@ from ..base import BaseManager
 
 from truelove.logger import logger
 from truelove.process.exception import *
-from truelove.db import MediaDB, WatchingDB
-from truelove.db.models.schema import WatcheeSchema, MediaSchema
-from truelove.process.utils import run_in_executor
+from truelove.db import VideoDB, WatchingDB
+from truelove.db.models.schema import WatcheeSchema, VideoSchema, FullVideoDataSchema
+from truelove.process.platforms.bilibili.api.models import AuthorVideoSearchVList
+from truelove.process.cores import core_managers
 from truelove.process.platforms.bilibili.api import *
 
 
-async def read_output(process):
-    while True:
-        line = await process.stdout.readline()
-        if not line:
-            break
-        print(line.decode().strip())
-
-
 class BiliBiliManager(BaseManager):
-    def __init__(self) -> None:
-        pass
+    
+    @staticmethod
+    async def add_watchee_to_db(uid: str, platform: str, core:str, watch_type: str) -> WatcheeSchema:
+        author_info: AuthorInfo = await BiliBiliManager.__fetch_author_info(int(uid))
+        await WatchingDB.add_author(name=author_info.name, uid=uid, platform=platform, core=core, watch_type=watch_type)
         
+        return (await WatchingDB.fetch_watchee_info_from_db(uid=uid))[0]
+    
+    @staticmethod
+    async def save_watchee_videos_to_db(w: WatcheeSchema, *args, **kwargs):
+        current_video_id = await BiliBiliManager.__fetch_current_video_id_list_from_db(w)
+
+        async for v in BiliBiliManager.__fetch_videos(w.uid):
+            if str(v.bvid) in current_video_id:
+                logger.info(f"Video [{v.title}] already exists, skip {w.author} [{w.uid}]")
+                if kwargs.get("force_refresh", False): 
+                    continue
+                return
+            
+            video_info = await BiliAPI.fetch_video_info(v.bvid)
+            await VideoDB.add_video_to_db(
+                w_id=w.w_id,
+                video_id=video_info.bvid,
+                video_name=video_info.title,
+                video_cover=video_info.pic,
+                video_intro=video_info.desc,
+                video_created=video_info.ctime,
+                video_pubdate=video_info.pubdate,
+                video_num=video_info.videos,
+            )
+            logger.info(f"Add [{v.title}] to Video. Wait for download~")
+
 
     @staticmethod
-    async def fetch_author_info(mid: int) -> AuthorInfo | None:
+    async def __fetch_author_info(mid: int) -> AuthorInfo | None:
         """查询用户基础信息
 
         Args:
@@ -38,22 +60,17 @@ class BiliBiliManager(BaseManager):
         result = await BiliAPI._request(url, params=get_params(mid))
         
         return AuthorInfo.model_validate(result["data"])
-        
-    @staticmethod
-    async def add_watchee_to_db(uid: str, platform: str, core:str) -> WatcheeSchema:
-        author_info: AuthorInfo = await BiliBiliManager.fetch_author_info(int(uid))
-        await WatchingDB.add_author(name=author_info.name, uid=uid, platform=platform, core=core)
-        
-        return (await WatchingDB.fetch_watchee_info_from_db(uid=uid))[0]
+    
     
     @staticmethod
-    async def _fetch_current_medias_id_from_db(w: WatcheeSchema) -> List[str]:
-        medias: List[MediaSchema] = await MediaDB.fetch_media_by_author_from_db(w.w_id)
+    async def __fetch_current_video_id_list_from_db(w: WatcheeSchema) -> List[str]:
+        videos: List[VideoSchema] = await VideoDB.fetch_video_list_by_author_from_db(w.w_id)
         
-        return [m.media_id for m in medias]
+        return [m.video_id for m in videos]
+    
     
     @staticmethod
-    async def _fetch_videos(uid: str) -> AsyncGenerator[AuthorVideoSearchVList, None]:
+    async def __fetch_videos(uid: str) -> AsyncGenerator[AuthorVideoSearchVList, None]:
         page1 = await BiliAPI.fetch_author_video_list(uid, pn=1)
         count = page1.page.count
         if count > 0:
@@ -65,75 +82,3 @@ class BiliBiliManager(BaseManager):
             for video in videos_page.list.vlist:
                 yield video
 
-    @staticmethod
-    async def save_watchee_medias_to_db(w: WatcheeSchema, *args, **kwargs):
-        current_medias_id = await BiliBiliManager._fetch_current_medias_id_from_db(w)
-
-        async for v in BiliBiliManager._fetch_videos(w.uid):
-            if str(v.bvid) in current_medias_id:
-                logger.info(f"Media [{v.title}] already exists, skip {w.author} [{w.uid}]")
-                if kwargs.get("force_refresh", False): 
-                    continue
-                return
-            
-            video_info = await BiliAPI.fetch_video_info(v.bvid)
-            await MediaDB.add_media_to_db(
-                w_id=w.w_id,
-                media_id=video_info.bvid,
-                media_type="video",
-                media_name=video_info.title,
-                media_cover=video_info.pic,
-                media_intro=video_info.desc,
-                media_created=video_info.ctime,
-                media_pubdate=video_info.pubdate,
-                media_videos=video_info.videos,
-            )
-            logger.info(f"Add [{v.title}] to Medias. Wait for download~")
-
-    @staticmethod
-    async def _download(md: FullMediaDataSchema):
-        match md.core :
-            case "bilix":
-                for i in range(1, md.media_videos + 1):
-                    media_id_with_p = f"{md.media_id}?p={i}"
-                    md2 = md.model_copy(update={"media_id": media_id_with_p})
-                    await BiliBiliManager._download_bilix(md2)
-            case _:
-                raise CoreNotFoundException(f"Core {md.core} not supported on {md.platform}")
-        
-       
-    
-    
-    @staticmethod
-    async def _download_bilix(md: FullMediaDataSchema) -> str:
-        # cmd = BiliBiliManager.core_dir / "bilix"
-        download_url = f"https://www.bilibili.com/video/{md.media_id}"
-        cmd = "bilix" # install bilix with pip, no need to use absolute path
-        if md.media_type == "video":
-                params = [
-                    str(cmd),
-                    "v",  download_url,
-                    "-d", md.download_path,
-                ]
-        else:
-            raise UnsupportedMediaTypeException(
-                f"Media type {md.media_type} not supported on bilix"
-            )
-            
-        if config.cookie != "":
-            params.append("--cookie")
-            params.append(config.cookie)
-        if config.cover:
-            params.append("--image")
-        if config.subtitle:
-            params.append("--subtitle")
-        if config.dm:
-            params.append("--dm")
-            
-            
-        logger.info(f"Download {md.platform} -> {md.author} -> {md.media_name} started")
-        
-        result = await run_in_executor(params)
-        logger.info("Output:", result)
-
-        return "Download completed."

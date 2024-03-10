@@ -2,7 +2,7 @@ import random
 import aiohttp
 from aiohttp.client_exceptions import ServerDisconnectedError
 
-from typing import Literal, Any
+from typing import Literal, Any, List
 from urllib.parse import urlencode
 
 
@@ -11,7 +11,7 @@ from truelove.logger import logger
 from .utils   import get_params
 from .wbi     import get_signed_params
 from .header  import Header
-from .models  import AuthorInfo, AuthorVideoSearchInfo, VideoInfo, AuthorVideoSearchVList
+from .models  import AuthorInfo, AuthorVideoSearchInfo, VideoInfo
 
 class BiliAPI:
     @staticmethod
@@ -95,19 +95,6 @@ class BiliAPI:
         return VideoInfo.model_validate(result["data"])
     
 
-    # TODO: 忘记这个是啥了, 动态?
-    @staticmethod
-    async def fetch_author_space(host_mid: int, offset: str = "", timezone_offset: int = -480, features: str = "itemOpusStyle"):
-        
-        url = "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space"
-        result = await BiliAPI._request(url, params=get_params(host_mid, params={
-            "offset": offset,
-            "timezone_offset": timezone_offset,
-            "features": features,
-        }))
-        
-        
-    
     
     
     

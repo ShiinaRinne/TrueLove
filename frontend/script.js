@@ -146,14 +146,14 @@ function getDownloadStatus(status) {
 // 获取订阅作者内容
 // TODO: 分页, 懒加载
 function fetchWatcheeContent(uid) {
-    $.get(baseUrl + "/watchee_content?uid=" + uid, function (data) {
+    $.get(baseUrl + "/watchee_video?uid=" + uid, function (data) {
         $("#author-content-list").empty();
         data.forEach(function (item) {
             $("#author-content-list").append(
                 `<li>
-                    <img src="${item.media_cover}" alt="${item.media_name}" style="max-width: 200px;">
-                    <p>简介: <br>${item.media_intro.replace(/\n/g, '<br>')}</p>
-                    <p>发布时间: ${new Date(item.media_created * 1000).toLocaleString()}</p>
+                    <img src="${item.video_cover}" alt="${item.video_name}" style="max-width: 200px;">
+                    <p>简介: <br>${item.video_intro.replace(/\n/g, '<br>')}</p>
+                    <p>发布时间: ${new Date(item.video_created * 1000).toLocaleString()}</p>
                     <p>下载状态: ${getDownloadStatus(item.download_status)}</p>
                 </li>`
             );
@@ -170,12 +170,12 @@ function removeWatchee(uid) {
     if (confirm("是否删除已下载的文件")) {
         var formData = {
             uid: uid,
-            delete_medias: true
+            delete_videos: true
         };
     } else {
         var formData = {
             uid: uid,
-            delete_medias: false
+            delete_videos: false
         };
     }
 

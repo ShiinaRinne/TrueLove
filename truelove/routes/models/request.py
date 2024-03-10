@@ -6,7 +6,8 @@ class AddWatcheeRequest(BaseModel):
     uid: str
     platform: Optional[str] = "bilibili"
     core: Literal["bilix", "you-get"] = "bilix"
+    type: Literal["video"] = "video"
 
 class RemoveSubscriptionRequest(BaseModel):
     uid: Union[str, int]
-    delete_medias: bool = False
+    delete_videos: bool = False

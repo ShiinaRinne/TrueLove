@@ -9,9 +9,9 @@ from truelove.db import session_handler
 from truelove.db.models import (
     Watching,
     WatcheeSchema,
-    FullMediaDataSchema,
-    Media,
-    MediaSchema,
+    FullVideoDataSchema,
+    Video,
+    VideoSchema,
 )
 from truelove.logger import logger
 
@@ -19,46 +19,46 @@ from truelove.logger import logger
 class WatchingDB:
     @staticmethod
     @session_handler
-    async def fetch_watchee_content_from_db(
+    async def fetch_watchee_video_list_from_db(
         limit: int = 99,
-        order_by: str = "media_pubdate",
+        order_by: str = "video_pubdate",
         order: Literal["asc", "desc"] = "desc",
         uid: Optional[str] = None,
         status: Optional[int] = None,
         session: AsyncSession = None,
-    ) -> List[FullMediaDataSchema]:
+    ) -> List[FullVideoDataSchema]:
         order_function = asc if order == "asc" else desc
-        order_expression = order_function(getattr(Media, order_by))
+        order_expression = order_function(getattr(Video, order_by))
 
         class _Response(BaseModel):
-            Media: MediaSchema
+            Video: VideoSchema
             Watching: WatcheeSchema
 
-        q = select(Media, Watching).join(Watching, Media.w_id == Watching.w_id)
+        q = select(Video, Watching).join(Watching, Video.w_id == Watching.w_id)
         
         if uid is not None: q = q.filter(Watching.uid == uid)
-        if status is not None: q = q.filter(Media.download_status == status)
+        if status is not None: q = q.filter(Video.download_status == status)
             
         result: List[_Response] = (await session.execute(q.order_by(order_expression).limit(limit))).mappings().all()  
         
         return [
-            FullMediaDataSchema(
-                id=r.Media.w_id,
+            FullVideoDataSchema(
+                id=r.Video.w_id,
                 author=r.Watching.author,
                 uid=r.Watching.uid,
                 platform=r.Watching.platform,
                 core = r.Watching.core,
                 add_time=r.Watching.add_time,
-                media_id=r.Media.media_id,
-                media_type=r.Media.media_type,
-                media_name=r.Media.media_name,
-                media_cover=r.Media.media_cover,
-                media_intro=r.Media.media_intro,
-                media_created=r.Media.media_created,
-                media_pubdate=r.Media.media_pubdate,
-                media_videos=r.Media.media_videos,
-                download_status=r.Media.download_status,
-                download_path=r.Media.download_path,
+                watch_type=r.Watching.watch_type,
+                video_id=r.Video.video_id,
+                video_name=r.Video.video_name,
+                video_cover=r.Video.video_cover,
+                video_intro=r.Video.video_intro,
+                video_created=r.Video.video_created,
+                video_pubdate=r.Video.video_pubdate,
+                video_num=r.Video.video_num,
+                download_status=r.Video.download_status,
+                download_path=r.Video.download_path,
             )
             for r in result
         ]
@@ -70,11 +70,12 @@ class WatchingDB:
         uid: str,
         platform: str,
         core: str,
+        watch_type:str,
         add_time: int = int(time.time()),
         session: AsyncSession = None,
     ) -> None:
         logger.info(f"Add [{uid} - {name}]  to Watching")
-        w = Watching(author=name, uid=str(uid), platform=platform,core=core, add_time=add_time)
+        w = Watching(author=name, uid=str(uid), platform=platform,core=core, add_time=add_time, watch_type=watch_type)
         session.add(w)
         
         
