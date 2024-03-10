@@ -47,11 +47,25 @@ async def _get_watchee_content(
 
 
 @router.get("/refresh")
-async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None) -> dict:
+async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None, force_refresh:bool = False) -> dict:
+    """刷新订阅的全部作者的内容.
+    当指定uid时, 则只刷新指定作者的内容.
+    默认检测到第一个内容已经存在时, 会直接跳过停止刷新, 当 force_refresh 为True时, 则会强制刷新全部
+
+    Args:
+        background_tasks (BackgroundTasks): _description_
+        uid (Optional[str], optional): _description_. Defaults to None.
+        force_refresh (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        dict: _description_
+    """
     if task_in_progress.get("refresh", False):
         return {"message": "任务正在进行中, 请稍后再试"}
-    else:    
-        background_tasks.add_task(TrueLoveManager.refresh, uid=parse_uid(uid))
+    else:
+        kwargs = {"force_refresh": force_refresh}
+        if uid == "": uid = None
+        await TrueLoveManager.trigger_job_manually("refresh", uid, **kwargs)
         return {
             "message": "已提交任务, 可能需要一些时间才可以刷新完毕",
         }

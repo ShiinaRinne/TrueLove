@@ -2,14 +2,12 @@ import os
 import asyncio
 import subprocess
 
-from datetime import datetime
-from typing import List, Optional, Any, Union
+from typing import List, Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from truelove.config import config
 from truelove.logger import logger
 from truelove.process.utils import *
-
 from truelove.process.exception import *
 from truelove.process.event import tl_event_mgr
 from truelove.db import MediaDB, WatchingDB
@@ -30,13 +28,14 @@ AVAILABLE_PLATFORM = {
 
 class TrueLoveManager:
     scheduler: AsyncIOScheduler = AsyncIOScheduler()
+
+    @staticmethod
+    async def trigger_job_manually(job_id: str, *args, **kwargs):
+        job = next((job for job in TrueLoveManager.scheduler.get_jobs() if job.id == job_id), None)
+        if job: await job.func(*args, **kwargs) # job.modify(next_run_time=datetime.now())
+
+
     cores = []
-
-    def __init__(self):
-        # self.core_dir = config.root_dir / "bin"
-        pass
-
-
     @staticmethod
     def update_core():
         core_list = os.listdir(config.root_dir / "bin")
@@ -65,11 +64,11 @@ class TrueLoveManager:
 
 
     @staticmethod
-    async def save_watchee_medias_to_db(w: WatcheeSchema):
+    async def save_watchee_medias_to_db(w: WatcheeSchema, *args, **kwargs):
         match w.platform:
             case "bilibili":
                 from truelove.process.platforms.bilibili import BiliBiliManager
-                await BiliBiliManager.save_watchee_medias_to_db(w)
+                await BiliBiliManager.save_watchee_medias_to_db(w, *args, **kwargs)
             case _:
                 pass
 
@@ -80,7 +79,7 @@ class TrueLoveManager:
 
 
     @staticmethod
-    async def refresh(uid: Optional[str] = None):
+    async def refresh(uid: Optional[str] = None, *args, **kwargs):
         if task_in_progress.get("refresh", False):
             return {"message": "任务正在进行中, 请稍后再试"}
         
@@ -88,7 +87,7 @@ class TrueLoveManager:
         try:
             watchees: List[WatcheeSchema] = await WatchingDB.fetch_watchee_info_from_db(uid=uid)
             sem = asyncio.Semaphore(4)
-            tasks = [TrueLoveManager.save_watchee_medias_to_db(a) for a in watchees]
+            tasks = [TrueLoveManager.save_watchee_medias_to_db(a, *args, **kwargs) for a in watchees]
         
             await asyncio.gather(*(sem_coro(sem, t) for t in tasks))
         finally:

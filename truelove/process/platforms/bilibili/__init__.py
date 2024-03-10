@@ -66,15 +66,16 @@ class BiliBiliManager(BaseManager):
                 yield video
 
     @staticmethod
-    async def save_watchee_medias_to_db(w: WatcheeSchema):
+    async def save_watchee_medias_to_db(w: WatcheeSchema, *args, **kwargs):
         current_medias_id = await BiliBiliManager._fetch_current_medias_id_from_db(w)
 
         async for v in BiliBiliManager._fetch_videos(w.uid):
             if str(v.bvid) in current_medias_id:
                 logger.info(f"Media [{v.title}] already exists, skip {w.author} [{w.uid}]")
-                return 
-                continue 
-
+                if kwargs.get("force_refresh", False): 
+                    continue
+                return
+            
             video_info = await BiliAPI.fetch_video_info(v.bvid)
             await MediaDB.add_media_to_db(
                 w_id=w.w_id,
@@ -88,8 +89,6 @@ class BiliBiliManager(BaseManager):
                 media_videos=video_info.videos,
             )
             logger.info(f"Add [{v.title}] to Medias. Wait for download~")
-
-            await asyncio.sleep(2)
 
     @staticmethod
     async def _download(md: FullMediaDataSchema):

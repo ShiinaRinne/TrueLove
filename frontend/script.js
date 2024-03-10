@@ -1,42 +1,42 @@
-$(document).ready(function() {
-    $('.open-add-sub').click(function() {
+$(document).ready(function () {
+    $('.open-add-sub').click(function () {
         $('#add-sub').show();
     });
-    
-    
-    $(document).on('click', '.close-btn', function() {
+
+
+    $(document).on('click', '.close-btn', function () {
         $('.sub').hide();
     });
 
-    $('#add-watchee-form').submit(function(event) {
+    $('#add-watchee-form').submit(function (event) {
         event.preventDefault();
         $('#add-sub').hide();
     });
 
     fetchWatcheeInfo();
 
-    $(document).off('click', '.refresh-btn').on('click', '.refresh-btn', function() {
+    $(document).off('click', '.refresh-btn').on('click', '.refresh-btn', function () {
         var uid = $(this).data('uid');
-        refreshContent(uid); 
+        refreshContent(uid);
     });
-    $(document).off('click', '.refresh-all').on('click', '.refresh-all', function() {
+    $(document).off('click', '.refresh-all').on('click', '.refresh-all', function () {
         refreshContent();
     });
 
-    $(document).on('click', '.view-content-btn', function() {
+    $(document).on('click', '.view-content-btn', function () {
         var uid = $(this).data('uid');
         fetchWatcheeContent(uid);
     });
 
-    $(document).off('click', '.remove-watchee-btn').on('click', '.remove-watchee-btn', function() {
+    $(document).off('click', '.remove-watchee-btn').on('click', '.remove-watchee-btn', function () {
         var uid = $(this).data('uid');
         removeWatchee(uid);
     });
-    $(document).on('click', '.refresh-watchee-btn', function() {
+    $(document).on('click', '.refresh-watchee-btn', function () {
         var uid = $(this).data('uid');
         refreshWatchee(uid);
     });
-    $('.close-btn').click(function(){
+    $('.close-btn').click(function () {
         $('.sub').hide();
     });
 });
@@ -44,47 +44,47 @@ $(document).ready(function() {
 
 // 刷新全部订阅作者的内容
 function refreshAllWatchees() {
-    $.get(baseUrl + "/refresh", function(response) {
+    $.get(baseUrl + "/refresh", function (response) {
         alert('全部内容已刷新!');
         refreshContent();
-    }).fail(function() {
+    }).fail(function () {
         alert("刷新全部内容时发生错误。");
     });
 }
 
 // 定义刷新内容的函数
 function refreshContent(uid) {
+
     var url = baseUrl + "/refresh";
+    url += "?uid="
     if (uid) {
-        url += "?uid=" + uid;
+        url += uid;
     }
-    console.log("refresh "+url);
-    $.get(url, function(response) {
+    if (confirm("强制刷新全部内容? \r\n默认检测到第一个内容已保存时就会跳过刷新, 但偶尔会出问题, 因此添加强制刷新功能. \r\n频繁使用或投稿数量过多, 可能导致IP被短暂封禁")) {
+        url += "&force_refresh=true";
+    } else {
+
+    }
+    $.get(url, function (response) {
         alert(response.message);
         fetchWatcheeInfo();
-        // if(response.status === "success") {
-        //     alert('内容刷新成功!');
-            
-        // } else {
-            
-        // }
-    }).fail(function(error) {
+    }).fail(function (error) {
         alert("请求失败: " + error.statusText);
     });
 }
 
 // 手动刷新作者内容
 function refreshWatchee(uid) {
-    $.get(baseUrl + "/refresh?uid=" + uid, function(response) {
+    $.get(baseUrl + "/refresh?uid=" + uid, function (response) {
         alert('作者内容已刷新!');
         refreshContent(uid);
-    }).fail(function() {
+    }).fail(function () {
         alert("刷新作者内容时发生错误。");
     });
 }
 
 // 添加订阅
-$('#add-watchee-form').submit(function(event){
+$('#add-watchee-form').submit(function (event) {
     event.preventDefault();
     var formData = {
         uid: $("#add-uid").val(),
@@ -97,12 +97,12 @@ $('#add-watchee-form').submit(function(event){
         url: baseUrl + "/add_watchee",
         contentType: "application/json",
         data: JSON.stringify(formData),
-        success: function(response) {
+        success: function (response) {
             alert('添加订阅成功!');
             $('#add-sub').hide();
             fetchWatcheeInfo();
         },
-        error: function(response) {
+        error: function (response) {
             alert('添加订阅失败: ' + response.responseJSON.detail);
         }
     });
@@ -113,9 +113,9 @@ baseUrl = "http://localhost:33200"
 
 // 获取订阅作者信息
 function fetchWatcheeInfo() {
-    $.get(baseUrl + "/watchee_info", function(data) {
+    $.get(baseUrl + "/watchee_info", function (data) {
         $(".watchee-list").empty();
-        data.forEach(function(item) {
+        data.forEach(function (item) {
             $(".watchee-list").append(
                 `<li>${item.author} (${item.platform} - ${item.core}) - UID: ${item.uid}
                     <div class="button-group">
@@ -126,7 +126,7 @@ function fetchWatcheeInfo() {
                 </li>`
             );
         });
-        
+
     });
 }
 
@@ -146,9 +146,9 @@ function getDownloadStatus(status) {
 // 获取订阅作者内容
 // TODO: 分页, 懒加载
 function fetchWatcheeContent(uid) {
-    $.get(baseUrl + "/watchee_content?uid=" + uid, function(data) {
+    $.get(baseUrl + "/watchee_content?uid=" + uid, function (data) {
         $("#author-content-list").empty();
-        data.forEach(function(item) {
+        data.forEach(function (item) {
             $("#author-content-list").append(
                 `<li>
                     <img src="${item.media_cover}" alt="${item.media_name}" style="max-width: 200px;">
@@ -159,7 +159,7 @@ function fetchWatcheeContent(uid) {
             );
         });
         $("#content-sub").show();
-    }).fail(function() {
+    }).fail(function () {
         alert("请求订阅作者内容时发生错误。");
     });
 }
@@ -178,17 +178,17 @@ function removeWatchee(uid) {
             delete_medias: false
         };
     }
-    
+
     $.ajax({
         type: "POST",
         url: baseUrl + "/remove_watchee",
         contentType: "application/json",
         data: JSON.stringify(formData),
-        success: function(response) {
+        success: function (response) {
             alert('取消订阅成功!');
             fetchWatcheeInfo();
         },
-        error: function(response) {
+        error: function (response) {
             alert('取消订阅失败: ' + response.responseJSON.detail);
         }
     });
