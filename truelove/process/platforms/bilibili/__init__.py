@@ -94,7 +94,10 @@ class BiliBiliManager(BaseManager):
     async def _download(md: FullMediaDataSchema):
         match md.core :
             case "bilix":
-                await BiliBiliManager._download_bilix(md)
+                for i in range(1, md.media_videos + 1):
+                    media_id_with_p = f"{md.media_id}?p={i}"
+                    md2 = md.model_copy(update={"media_id": media_id_with_p})
+                    await BiliBiliManager._download_bilix(md2)
             case _:
                 raise CoreNotFoundException(f"Core {md.core} not supported on {md.platform}")
         
@@ -109,10 +112,8 @@ class BiliBiliManager(BaseManager):
         if md.media_type == "video":
                 params = [
                     str(cmd),
-                    "get_series" if md.media_videos > 1 else "v",
-                    download_url,
-                    "-d",
-                    md.download_path,
+                    "v",  download_url,
+                    "-d", md.download_path,
                 ]
         else:
             raise UnsupportedMediaTypeException(

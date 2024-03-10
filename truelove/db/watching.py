@@ -21,14 +21,14 @@ class WatchingDB:
     @session_handler
     async def fetch_watchee_content_from_db(
         limit: int = 99,
-        order_by: str = "add_time",
+        order_by: str = "media_pubdate",
         order: Literal["asc", "desc"] = "desc",
         uid: Optional[str] = None,
         status: Optional[int] = None,
         session: AsyncSession = None,
     ) -> List[FullMediaDataSchema]:
         order_function = asc if order == "asc" else desc
-        order_expression = order_function(getattr(Watching, order_by))
+        order_expression = order_function(getattr(Media, order_by))
 
         class _Response(BaseModel):
             Media: MediaSchema

@@ -178,7 +178,7 @@ class TrueLoveManager:
     @staticmethod
     async def download_media():
         ws: List[FullMediaDataSchema] = (
-            await TrueLoveManager.fetch_watchee_content_from_db(limit=1, status=0)
+            await TrueLoveManager.fetch_watchee_content_from_db(limit=1, status=0, order_by="media_pubdate", order="asc")
         )
         for w in ws:
             await TrueLoveManager._download(w)
