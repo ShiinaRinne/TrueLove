@@ -52,3 +52,30 @@ class FullVideoDataSchema(BaseModel):
     download_status: DownloadStatus
     download_path: str
     
+
+class DynamicSchema(BaseModel):
+    id: int
+    w_id: int
+    dynamic_id: int
+    dynamic_pub_ts: int
+    dynamic_pub_time: str
+    
+    class Config:
+        from_attributes = True
+        
+class FullDynamicDataSchema(BaseModel):
+    id: int
+    author: str
+    uid: str
+    platform: str
+    core: str
+    add_time: int
+    watch_type: str
+    
+    
+    dynamic_id: int
+    dynamic_pub_ts: int
+    dynamic_pub_time: str
+    download_status: DownloadStatus
+    download_path: str
+    

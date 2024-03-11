@@ -1,4 +1,4 @@
-import os
+import shutil
 import asyncio
 
 from typing import List, Optional
@@ -9,12 +9,13 @@ from truelove.logger import logger
 from truelove.process.utils import *
 from truelove.process.exception import *
 from truelove.process.event import tl_event_mgr
-from truelove.db import VideoDB, WatchingDB
+
+from truelove.process.platforms import platform_managers
+
+from truelove.db import VideoDB, WatchingDB, DynamicDB
 from truelove.db.models.schema import DownloadStatus
 from truelove.db.models import WatcheeSchema, FullVideoDataSchema
 
-from truelove.process.cores import core_managers
-from truelove.process.platforms import platform_managers
 
 task_in_progress = {}
 
@@ -36,20 +37,21 @@ class TrueLoveManager:
 
 
     @staticmethod
-    async def add_watchee(uid: str, platform: str, core: str, watch_type: str) -> WatcheeSchema | None:
+    async def add_watchee(uid: str, platform: str, core: str, watch_type: str) -> bool:
         if (pmgr:= platform_managers.get(platform)) is None:
             raise PlatformNotFoundException(f"Platform {platform} not found")
         
-        is_exists = await WatchingDB.is_watchee_exists_in_db(uid)
+        is_exists = await WatchingDB.is_watchee_exists_in_db(uid, watch_type)
         if is_exists is not None:
             logger.warning(f"Author [{uid}] already exists")
-            return None
+            return False
     
-        return await pmgr.add_watchee_to_db(uid=uid, platform=platform, core=core, watch_type=watch_type)
+        await pmgr.add_watchee_to_db(uid=uid, platform=platform, core=core, watch_type=watch_type)
+        return True
 
     @staticmethod
-    async def remove_watchee(uid: str, delete_videos: bool = False) -> bool:
-        watchee_info: List[WatcheeSchema] = await WatchingDB.fetch_watchee_info_from_db(uid)
+    async def remove_watchee(w_id: int, watch_type:Literal["video", "dynamic"], delete_downloads: bool = False) -> bool:
+        watchee_info: List[WatcheeSchema] = await WatchingDB.fetch_watchee_info_from_db(w_id, watch_type=watch_type)
 
         # cant find
         if watchee_info is None or len(watchee_info) == 0:
@@ -57,23 +59,29 @@ class TrueLoveManager:
 
         await WatchingDB.delete_author(watchee_info[0])
         
-        if delete_videos:
-            video_download_paths:List[str] = await VideoDB.fetch_video_save_path(watchee_info[0])
-            await TrueLoveManager.__delete_files(video_download_paths)
-            await VideoDB.delete_author_video(watchee_info[0])
+        if delete_downloads:
+            match watch_type:
+                case "video":
+                    media_download_paths:List[str] = await VideoDB.fetch_video_save_path(watchee_info[0])
+                    await VideoDB.delete_author_video(watchee_info[0])
+                case "dynamic":
+                    media_download_paths:List[str] = await DynamicDB.fetch_dynamic_save_path(watchee_info[0])
+                    await DynamicDB.delete_author_dynamic(watchee_info[0])
+                    
+            await TrueLoveManager.__delete_files(media_download_paths)
             
         return True
     
     @staticmethod
-    async def refresh_watchee(uid: Optional[str] = None, *args, **kwargs) -> None:
+    async def refresh_watchee(w_id: Optional[int] = None, *args, **kwargs) -> None:
         if task_in_progress.get("refresh", False):
             return {"message": "任务正在进行中, 请稍后再试"}
         
         task_in_progress["refresh"] = True
         try:
-            watchees: List[WatcheeSchema] = await WatchingDB.fetch_watchee_info_from_db(uid=uid)
+            watchees: List[WatcheeSchema] = await WatchingDB.fetch_watchee_info_from_db(w_id=w_id)
             sem = asyncio.Semaphore(4)
-            tasks = [TrueLoveManager.__save_watchee_videos_to_db(a, *args, **kwargs) for a in watchees]
+            tasks = [TrueLoveManager.__refresh_watchee(w, *args, **kwargs) for w in watchees]
         
             await asyncio.gather(*(sem_coro(sem, t) for t in tasks))
         finally:
@@ -107,7 +115,10 @@ class TrueLoveManager:
         for p in paths:
             if not os.path.exists(p):
                 continue
-            os.remove(p)
+            try:
+                shutil.rmtree(p)
+            except PermissionError as e:
+                logger.error(f"Can't remove {p}. \r\nPermissionError: {repr(e)}")
             
             # just for test
             # dir_name = os.path.dirname(p)
@@ -117,24 +128,30 @@ class TrueLoveManager:
             # os.rename(p, new_path)
 
     @staticmethod
-    async def __save_watchee_videos_to_db(w: WatcheeSchema, *args, **kwargs):
+    async def __refresh_watchee(w: WatcheeSchema, *args, **kwargs):
         if (pmgr:= platform_managers.get(w.platform)) is None:
             raise PlatformNotFoundException(f"Platform {w.platform} not found")
         
-        await pmgr.save_watchee_videos_to_db(w, *args, **kwargs)
+        match w.watch_type:
+            case "video":
+                await pmgr.save_watchee_videos_info_to_db(w, *args, **kwargs)
+            case "dynamic":
+                await pmgr.download_dynamic(w, *args, **kwargs)
+            case _:
+                logger.warning(f"Unknown watch_type {w.watch_type}")
+                return
     
     @staticmethod
     async def __download_video(t: FullVideoDataSchema):
         if (pmgr:= platform_managers.get(t.platform)) is None:
             raise PlatformNotFoundException(f"Platform {t.platform} not found")
-        if (cmgr:= core_managers.get(t.core)) is None:
-            raise CoreNotFoundException(f"Core {t.core} not found")
+        
 
-        t.download_path = parse_save_dir(t) # 未下载的文件的 download_path 是空的, 这里正好可以塞进去直接给后面用
+        t.download_path = parse_save_dir(t.author, t.video_name, t.platform, t.watch_type) # 未下载的文件的 download_path 是空的, 这里正好可以塞进去直接给后面用
         
         (t,), _ = await tl_event_mgr.emit("before_download", t)
         
-        await cmgr.download_video(t)
+        await pmgr.download_video(t)
 
         await VideoDB.update_video_download_status(t, DownloadStatus.SUCCESS)
         

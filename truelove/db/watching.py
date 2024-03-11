@@ -87,19 +87,20 @@ class WatchingDB:
         session: AsyncSession = None,
     ) -> None:
         logger.info(f"Delete [{w.platform} - {w.author}] from Watching")
-        await session.execute(delete(Watching).filter(Watching.uid == str(w.uid)))
+        await session.execute(delete(Watching).filter(Watching.w_id == w.w_id))
         
 
     @staticmethod
     @session_handler
-    async def is_watchee_exists_in_db(uid: str, session: AsyncSession = None) -> WatcheeSchema | None:
-        return (await session.execute(select(Watching).filter(Watching.uid == uid))).scalars().first()
+    async def is_watchee_exists_in_db(uid: str, watch_type: str, session: AsyncSession = None) -> WatcheeSchema | None:
+        return (await session.execute(select(Watching).filter(Watching.uid == uid, Watching.watch_type==watch_type))).scalars().first()
         
 
     @staticmethod
     @session_handler
     async def fetch_watchee_info_from_db(
-        uid:Optional[str] = None,
+        w_id:Optional[int] = None,
+        watch_type:Optional[str] = None,
         limit: int = 999,
         order_by: str = "add_time",
         order: Literal["asc", "desc"] = "desc",
@@ -119,7 +120,9 @@ class WatchingDB:
         order_function = asc if order == "asc" else desc
         order_expression = order_function(getattr(Watching, order_by))
         query = select(Watching).order_by(order_expression)
-        if uid is not None:
-            query = query.filter(Watching.uid == uid)
+        if w_id is not None:
+            query = query.filter(Watching.w_id == w_id)
+        if watch_type is not None:
+            query = query.filter(Watching.watch_type == watch_type)
         result = await session.execute(query.limit(limit))
         return result.scalars().all()

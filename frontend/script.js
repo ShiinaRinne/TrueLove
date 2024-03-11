@@ -29,8 +29,9 @@ $(document).ready(function () {
     });
 
     $(document).off('click', '.remove-watchee-btn').on('click', '.remove-watchee-btn', function () {
-        var uid = $(this).data('uid');
-        removeWatchee(uid);
+        var w_id = $(this).data('w_id');
+        var watch_type = $(this).data('watch_type');
+        removeWatchee(w_id, watch_type);
     });
     $(document).on('click', '.refresh-watchee-btn', function () {
         var uid = $(this).data('uid');
@@ -89,8 +90,8 @@ $('#add-watchee-form').submit(function (event) {
     var formData = {
         uid: $("#add-uid").val(),
         platform: $("#platform").val(),
-        core: $("#core").val()
-
+        core: $("#core").val(),
+        watch_type: $("#type").val()
     };
     $.ajax({
         type: "POST",
@@ -117,11 +118,11 @@ function fetchWatcheeInfo() {
         $(".watchee-list").empty();
         data.forEach(function (item) {
             $(".watchee-list").append(
-                `<li>${item.author} (${item.platform} - ${item.core}) - UID: ${item.uid}
+                `<li>${item.author} (${item.platform} - ${item.watch_type} - ${item.core}) - UID: ${item.uid}
                     <div class="button-group">
-                        <button class="refresh-btn" data-uid="${item.uid}">刷新</button>
-                        <button class="view-content-btn" data-uid="${item.uid}">查看内容</button>
-                        <button class="remove-watchee-btn" data-uid="${item.uid}">取消订阅</button>
+                        <button class="refresh-btn" data-w_id="${item.w_id}" data-watch_type="${item.watch_type}">刷新</button>
+                        <button class="view-content-btn" data-w_id="${item.w_id}" data-watch_type="${item.watch_type}">查看内容</button>
+                        <button class="remove-watchee-btn" data-w_id="${item.w_id}" data-watch_type="${item.watch_type}">取消订阅</button>
                     </div>
                 </li>`
             );
@@ -166,16 +167,18 @@ function fetchWatcheeContent(uid) {
 
 
 // 取消订阅
-function removeWatchee(uid) {
+function removeWatchee(w_id, watch_type) {
     if (confirm("是否删除已下载的文件")) {
         var formData = {
-            uid: uid,
-            delete_videos: true
+            w_id: w_id,
+            delete_downloads: true,
+            watch_type: watch_type
         };
     } else {
         var formData = {
-            uid: uid,
-            delete_videos: false
+            w_id: w_id,
+            delete_downloads: false,
+            watch_type: watch_type
         };
     }
 

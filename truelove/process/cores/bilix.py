@@ -4,7 +4,6 @@ from truelove.config import config
 from truelove.logger import logger
 from truelove.process.utils import run_in_executor
 
-
 class Bilix(BaseCore):
     def __init__(self):
         super().__init__()

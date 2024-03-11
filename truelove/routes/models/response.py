@@ -21,5 +21,6 @@ class AddWatcheeResponse(BaseModel):
     message: Optional[str] = None
     uid: Optional[int] = None
     platform: Optional[str] = None
+    watch_type: Optional[str] = None
     ret_code: int
 

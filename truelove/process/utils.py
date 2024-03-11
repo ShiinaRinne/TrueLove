@@ -31,15 +31,16 @@ def generate_random_string(length=16):
     return random_string
 
 
-def parse_save_dir(video: FullVideoDataSchema):
+def parse_save_dir(author: str, media_name: str, platform: str, watche_type: str):
     dir: str = config.save_dir
-    video_name = video.video_name.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
+    media_name = media_name.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
     replacements = {
-        "{author}":                 video.author,
-        "{filename}":               video_name,
-        "{filename_without_ext}":   video_name.rsplit(".", 1)[0] if "." in video.video_name else "",
-        "{ext}":                    video_name.rsplit(".", 1)[1] if "." in video.video_name else "",
-        "{platform}":               video.platform,
+        "{author}":                 author,
+        "{filename}":               media_name,
+        "{filename_without_ext}":   media_name.rsplit(".", 1)[0] if "." in media_name else "",
+        "{ext}":                    media_name.rsplit(".", 1)[1] if "." in media_name else "",
+        "{watch_type}":            watche_type,
+        "{platform}":               platform,
         "{timestamp}":              str(int(time.time())),
         "{timestamp_nano}":         str(time.time_ns()),
         "{datetime}":               time.strftime("%Y%m%d%H%M%S"),
@@ -56,7 +57,7 @@ def parse_save_dir(video: FullVideoDataSchema):
     for k, v in replacements.items():
         dir = dir.replace(k, v)
     if os.path.exists(dir) is False:
-        os.makedirs(dir)
+        os.makedirs(dir, exist_ok=True)
     return dir
 
 

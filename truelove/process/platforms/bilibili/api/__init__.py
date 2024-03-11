@@ -11,7 +11,7 @@ from truelove.logger import logger
 from .utils   import get_params
 from .wbi     import get_signed_params
 from .header  import Header
-from .models  import AuthorInfo, AuthorVideoSearchInfo, VideoInfo
+from .models  import AuthorInfo, AuthorVideoSearchInfo, VideoInfo, DynamicData
 
 class BiliAPI:
     @staticmethod
@@ -31,6 +31,23 @@ class BiliAPI:
                     return res
             except ServerDisconnectedError as e:
                 logger.error(f"url {url} 请求错误:\r\n {e}. \r\n headers: {header} \r\n params: {signed_params}")
+                return None
+            
+    @staticmethod
+    async def _request_without_wbi(url: str, method: Literal["GET", "POST"] = "GET", **kwargs: Any) -> dict:
+        header = Header.new(cookie=config.cookie)
+        req_url = f"{url}?{urlencode(kwargs.get('params', {}))}"
+        async with aiohttp.ClientSession() as session:
+            try:
+                proxies = random.choice(config.proxies) if config.proxies else None
+                async with session.request(method=method, url=req_url, headers=header, proxy=proxies) as response:
+                    res = await response.json()
+                    if res is None or res["code"] != 0:
+                        logger.error(f"url {url} 请求错误:\r\n {res}. \r\n headers: {header} \r\n params: {kwargs.get('params', {})}")
+                        raise RuntimeError(f"url {url} 请求错误:\r\n {res}. \r\n headers: {header} \r\n params: {kwargs.get('params', {})}")
+                    return res
+            except ServerDisconnectedError as e:
+                logger.error(f"url {url} 请求错误:\r\n {e}. \r\n headers: {header} \r\n params: {kwargs.get('params', {})}")
                 return None
         
 
@@ -95,6 +112,21 @@ class BiliAPI:
         return VideoInfo.model_validate(result["data"])
     
 
+    @staticmethod
+    async def fetch_author_dynamics(host_mid: int, offset: str = "", timezone_offset: int = -480, features: str = "itemOpusStyle") -> DynamicData: 
+        url = "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space"
+        params = {
+            "host_mid": host_mid,
+            "offset": offset,
+            "timezone_offset": timezone_offset,
+            "features": "itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote",
+            "platform": "web",
+            "web_location":0.0,
+            "dm_img_str":"V2ViR0wgMS4wIChPcGVuR0wgRVMgMi4wIENocm9taXVtKQ",
+            "x-bili-device-req-json":"{\"platform\": \"web\", \"device\": \"pc\"}",
+        }
+        result = await BiliAPI._request_without_wbi(url, params=params)
+        return DynamicData.model_validate(result["data"])
     
     
     

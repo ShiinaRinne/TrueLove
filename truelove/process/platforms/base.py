@@ -1,13 +1,19 @@
-from typing import AsyncGenerator
+from abc import ABC, abstractmethod
 from truelove.db.models.schema import WatcheeSchema, VideoSchema, FullVideoDataSchema
 
-class BaseManager:
-    
-    @staticmethod
-    async def add_watchee_to_db(uid: str, platform: str, core:str, watch_type: str) -> WatcheeSchema:
-        raise NotImplementedError
-       
-    @staticmethod
-    async def save_watchee_videos_to_db(w: WatcheeSchema, *args, **kwargs):
-         raise NotImplementedError
+class BaseManager(ABC):
+    @abstractmethod
+    async def add_watchee_to_db(self, uid: str, platform: str, core: str, watch_type: str) -> WatcheeSchema:
+        pass
 
+    @abstractmethod
+    async def save_watchee_videos_info_to_db(self, w: WatcheeSchema, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    async def download_dynamic(self, w: WatcheeSchema, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    async def download_video(self, f: FullVideoDataSchema):
+        pass

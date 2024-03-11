@@ -47,7 +47,7 @@ async def _get_watchee_video(
 
 
 @router.get("/refresh")
-async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None, force_refresh:bool = False) -> dict:
+async def _refresh(background_tasks: BackgroundTasks ,w_id: Optional[int] = None, force_refresh:bool = False) -> dict:
     """刷新订阅的全部作者的内容.
     当指定uid时, 则只刷新指定作者的内容.
     默认检测到第一个内容已经存在时, 会直接跳过停止刷新, 当 force_refresh 为True时, 则会强制刷新全部
@@ -64,8 +64,8 @@ async def _refresh(background_tasks: BackgroundTasks ,uid: Optional[str] = None,
         return {"message": "任务正在进行中, 请稍后再试"}
     else:
         kwargs = {"force_refresh": force_refresh}
-        if uid == "": uid = None
-        await TrueLoveManager.trigger_job_manually("refresh", uid, **kwargs)
+        if w_id == "": w_id = None
+        await TrueLoveManager.trigger_job_manually("refresh", w_id, **kwargs)
         return {
             "message": "已提交任务, 可能需要一些时间才可以刷新完毕",
         }
@@ -83,8 +83,8 @@ async def _download_video(uid: Optional[str] = None):
 async def _add_watchee(request: AddWatcheeRequest) -> AddWatcheeResponse:
     uid = parse_uid(request.uid)
 
-    w: WatcheeSchema = await TrueLoveManager.add_watchee(uid, request.platform, request.core, request.type)
-    if w is None:
+    w = await TrueLoveManager.add_watchee(uid, request.platform, request.core, request.watch_type)
+    if not w:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Author {uid} already exists",
@@ -92,9 +92,6 @@ async def _add_watchee(request: AddWatcheeRequest) -> AddWatcheeResponse:
         
     return AddWatcheeResponse(
         status="success",
-        message=f"Add [{w.author} - {w.watch_type}] to Watching",
-        uid=w.uid,
-        platform="bilibili",
         ret_code=0,
     )
 
@@ -113,16 +110,16 @@ async def _remove_watchee(request: RemoveSubscriptionRequest) -> None:
     Returns:
         _type_: _description_
     """
-    ok = await TrueLoveManager.remove_watchee(request.uid, request.delete_videos)
+    ok = await TrueLoveManager.remove_watchee(request.w_id, watch_type=request.watch_type, delete_downloads=request.delete_downloads)
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Author {request.uid} not exists",
+            detail=f"Author {request.w_id} not exists",
         )
     
 
     return {
         "status": "success",
-        "message": f"Delete [{request.uid}] from Watching",
+        "message": f"Delete [{request.w_id}] from Watching",
         "ret_code": 0,
     }

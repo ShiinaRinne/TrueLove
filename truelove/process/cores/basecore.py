@@ -1,8 +1,9 @@
-from truelove.db.models.schema import WatcheeSchema, VideoSchema, FullVideoDataSchema
+from abc import ABC, abstractmethod
 
-class BaseCore:
+class BaseCore(ABC):
     def __init__(self):
         pass
     
+    @abstractmethod
     async def download_video(self, md):
-        raise NotImplementedError
+        pass

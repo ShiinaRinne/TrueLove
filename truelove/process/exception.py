@@ -1,4 +1,4 @@
-from truelove.db import FullVideoDataSchema
+from truelove.db.models.schema import FullVideoDataSchema
 
 
 class DownloadException(Exception):
