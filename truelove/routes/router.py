@@ -14,19 +14,19 @@ router = APIRouter()
 
 
 @router.get("/watchee_info")
-async def _get_watchee_info(uid: Optional[str] = None) -> List[WatcheeSchema]:
+async def _get_watchee_info(w_id: Optional[int] = None) -> List[WatcheeSchema]:
     """获取全部订阅的作者信息
     当有指定uid时, 则只获取指定作者的信息
 
     Returns:
         List[WatchingSchema]: _description_
     """
-    return await TrueLoveManager.fetch_watchee_info(uid)
+    return await TrueLoveManager.fetch_watchee_info(w_id)
 
 
 @router.get("/watchee_video")
 async def _get_watchee_video(
-    uid: Optional[str] = None,
+    w_id: Optional[int] = None,
     limit: int = 10,
     order_by: str = "video_created",
     order: Literal["asc", "desc"] = "desc",
@@ -43,18 +43,18 @@ async def _get_watchee_video(
         _type_: _description_
     """
 
-    return await TrueLoveManager.fetch_watchee_video_list(limit=limit, order_by=order_by, order=order, uid=uid)
+    return await TrueLoveManager.fetch_watchee_video_list(limit=limit, order_by=order_by, order=order, w_id=w_id)
 
 
 @router.get("/refresh")
 async def _refresh(background_tasks: BackgroundTasks ,w_id: Optional[int] = None, force_refresh:bool = False) -> dict:
     """刷新订阅的全部作者的内容.
-    当指定uid时, 则只刷新指定作者的内容.
+    当指定 w_id 时, 则只刷新指定作者的内容.
     默认检测到第一个内容已经存在时, 会直接跳过停止刷新, 当 force_refresh 为True时, 则会强制刷新全部
 
     Args:
         background_tasks (BackgroundTasks): _description_
-        uid (Optional[str], optional): _description_. Defaults to None.
+        w_id (Optional[int], optional): _description_. Defaults to None.
         force_refresh (bool, optional): _description_. Defaults to False.
 
     Returns:
@@ -71,7 +71,7 @@ async def _refresh(background_tasks: BackgroundTasks ,w_id: Optional[int] = None
         }
         
 @router.get("/download_video")
-async def _download_video(uid: Optional[str] = None):
+async def _download_video(w_id: Optional[int] = None):
     # await download_video()
 
     return {
@@ -101,7 +101,7 @@ async def _remove_watchee(request: RemoveSubscriptionRequest) -> None:
     """取消对某个作者的订阅
 
     Args:
-        uid (str): 对应平台的uid
+        w_id (int): 对应平台的 w_id
         delete_videos (bool, optional): 是否删除已经下载好的文件与视频
 
     Raises:

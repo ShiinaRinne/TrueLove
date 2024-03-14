@@ -27,7 +27,7 @@ class DynamicDB:
         
     @staticmethod
     @session_handler
-    async def is_dynamic_exists_in_db(w_id: str, dynamic_id: str, session: Session = None) -> bool:
+    async def is_dynamic_exists_in_db(w_id: int, dynamic_id: str, session: Session = None) -> bool:
         return (await session.execute(select(Dynamic).where(Dynamic.w_id == w_id, Dynamic.dynamic_id == dynamic_id))).scalar() is not None
     
     @staticmethod

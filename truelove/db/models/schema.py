@@ -34,7 +34,7 @@ class WatcheeSchema(BaseModel):
         from_attributes = True
 
 class FullVideoDataSchema(BaseModel):
-    id: int
+    w_id: int
     author: str
     uid: str
     platform: str

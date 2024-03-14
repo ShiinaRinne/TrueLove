@@ -88,19 +88,19 @@ class TrueLoveManager:
             task_in_progress["refresh"] = False
  
     @staticmethod
-    async def fetch_watchee_info(uid: Optional[str] = None) -> List[WatcheeSchema]:
-        return await WatchingDB.fetch_watchee_info_from_db(uid)
+    async def fetch_watchee_info(w_id: Optional[int] = None) -> List[WatcheeSchema]:
+        return await WatchingDB.fetch_watchee_info_from_db(w_id)
 
     @staticmethod
     async def fetch_watchee_video_list(
             limit: int = 99,
             order_by: str = "add_time",
             order: Literal["asc", "desc"] = "desc",
-            uid: Optional[str] = None,
+            w_id: Optional[int] = None,
             status: Optional[int] = None,
         ) -> List[FullVideoDataSchema]:
         return await WatchingDB.fetch_watchee_video_list_from_db(
-                    limit=limit, order_by=order_by, order=order, uid=uid, status=status
+                    limit=limit, order_by=order_by, order=order, w_id=w_id, status=status
                 )
 
     @staticmethod

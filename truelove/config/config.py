@@ -22,4 +22,7 @@ class Config:
         self.subtitle = self.download_settings['subtitle']
         self.dm = self.download_settings['dm']
         
+        self.plugins = self.config['plugins']
+        self.mp4_to_mp3 = self.plugins['mp4_to_mp3']
+        
 config = Config()

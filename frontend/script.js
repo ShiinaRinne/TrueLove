@@ -16,7 +16,7 @@ $(document).ready(function () {
     fetchWatcheeInfo();
 
     $(document).off('click', '.refresh-btn').on('click', '.refresh-btn', function () {
-        var uid = $(this).data('uid');
+        var uid = $(this).data('w_id');
         refreshContent(uid);
     });
     $(document).off('click', '.refresh-all').on('click', '.refresh-all', function () {
@@ -24,7 +24,7 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.view-content-btn', function () {
-        var uid = $(this).data('uid');
+        var uid = $(this).data('w_id');
         fetchWatcheeContent(uid);
     });
 
@@ -34,7 +34,7 @@ $(document).ready(function () {
         removeWatchee(w_id, watch_type);
     });
     $(document).on('click', '.refresh-watchee-btn', function () {
-        var uid = $(this).data('uid');
+        var uid = $(this).data('w_id');
         refreshWatchee(uid);
     });
     $('.close-btn').click(function () {
@@ -57,7 +57,7 @@ function refreshAllWatchees() {
 function refreshContent(uid) {
 
     var url = baseUrl + "/refresh";
-    url += "?uid="
+    url += "?w_id="
     if (uid) {
         url += uid;
     }
@@ -76,7 +76,7 @@ function refreshContent(uid) {
 
 // 手动刷新作者内容
 function refreshWatchee(uid) {
-    $.get(baseUrl + "/refresh?uid=" + uid, function (response) {
+    $.get(baseUrl + "/refresh?w_id=" + uid, function (response) {
         alert('作者内容已刷新!');
         refreshContent(uid);
     }).fail(function () {
@@ -147,7 +147,7 @@ function getDownloadStatus(status) {
 // 获取订阅作者内容
 // TODO: 分页, 懒加载
 function fetchWatcheeContent(uid) {
-    $.get(baseUrl + "/watchee_video?uid=" + uid, function (data) {
+    $.get(baseUrl + "/watchee_video?w_id=" + uid, function (data) {
         $("#author-content-list").empty();
         data.forEach(function (item) {
             $("#author-content-list").append(

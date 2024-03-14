@@ -23,7 +23,7 @@ class WatchingDB:
         limit: int = 99,
         order_by: str = "video_pubdate",
         order: Literal["asc", "desc"] = "desc",
-        uid: Optional[str] = None,
+        w_id: Optional[int] = None,
         status: Optional[int] = None,
         session: AsyncSession = None,
     ) -> List[FullVideoDataSchema]:
@@ -36,14 +36,14 @@ class WatchingDB:
 
         q = select(Video, Watching).join(Watching, Video.w_id == Watching.w_id)
         
-        if uid is not None: q = q.filter(Watching.uid == uid)
+        if w_id is not None: q = q.filter(Watching.w_id == w_id)
         if status is not None: q = q.filter(Video.download_status == status)
             
         result: List[_Response] = (await session.execute(q.order_by(order_expression).limit(limit))).mappings().all()  
         
         return [
             FullVideoDataSchema(
-                id=r.Video.w_id,
+                w_id=r.Video.w_id,
                 author=r.Watching.author,
                 uid=r.Watching.uid,
                 platform=r.Watching.platform,
